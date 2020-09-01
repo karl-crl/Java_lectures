@@ -3,7 +3,7 @@ package examples_1;
 public class Main {
     public static void main(String[] args) {
         A a = new A();
-        // A privateA = new A(10); ошибка компиляции
+        // ex_reflection.A privateA = new ex_reflection.A(10); ошибка компиляции
         int i = 30000;
         byte b = (byte) i;
         char c1 = 1;

@@ -133,6 +133,7 @@ class NameRunnable implements Runnable {
 ##  Состояния потока:
 
 **Идейно**:
+
 ![image](pics/thread_1.png)
 
 t.start() : New -> Runnable   
@@ -261,7 +262,9 @@ synchronized(obj){//получение блокировки
 * synchronized не позволяет сделать какую-то другую задачу, если поток ждет
 ресурс (но есть другие штуки, которые позволяют).
 * Можно сделать метод ЭКЗЕМПЛЯРА синхронизированным:
-`public synchronized int getValue() { ... }`.
+```
+public synchronized int getValue() { ... }
+```
 * Эквивалентно (почти, потому что JIT компиллятору проще оптимизировать первое)
 ```
 public int getValue() {

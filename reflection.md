@@ -119,7 +119,8 @@ System.out.println(Arrays.toString(A.class.getDeclaredFields()));
 System.out.println(Arrays.toString(A.class.getField("priv_field")); //java.lang.NoSuchFieldException
 ```
 
-**??** В каком порядке появляются поля в `getFields()`?
+**Q** В каком порядке появляются поля в `getFields()`?   
+**A**: Порядок не задан
 
 **Класс Field**
 

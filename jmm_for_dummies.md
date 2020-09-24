@@ -105,22 +105,202 @@ a = 2
 # volatile переменные
 
 Переменные
-* Не кешируются (всегда читаем из оперативки)
-* Всегда записываются в общую память
+* Не кешируются (всегда читаем из оперативки).
+* Всегда записываются в общую память.
 * Если volatile-ссылка не изменилась, то данные доступные по ней могли не
 измениться.
-* Делать volatile дорого (???)
+```kotlin
+volatile vat x: A;
+x = A() // гарантируем, что это сразу скинеся в общую память
+x.foo = S // нет гарантий на то, что это сразу запишется
+if (x != null) {
+    print(x.foo) // может быть ошибка
+}
+```
+* Делать volatile дорого (поскольку приходится работать с оперативкой,
+а не кешом).
 
 Зачем?
 * Делаем атомарные long и double
 
 Пример (про синглтон):
 ```java
+// однопоточная версия
 class Foo {
-    private static Helper helper = 
+    private static Helper helper = null;
+    public static Helper getHelper() {
+        if (helper == null) {
+            helper = new Helper();
+        }
+        return helper;
+    }
+//......
+}
+```
+Почему не работает при нескольких потоках?
+*  Между проверкой в `if` и присваиванием может много всего произойти.
+
+```java
+// многоточная версия, но медленная
+class Foo {
+    private static Helper helper = null;
+    public static synchronized Helper getHelper() {
+        if (helper == null) {
+            helper = new Helper();
+        }
+        return helper;
+    }
+//......
+}
+```
+Тут все еще есть проблемы:
+* `getHelper()` синхронизованный, поэтому каждый раз, когда будем 
+пытаться взять `Helper()`, нам придется делать это в 1 поток за раз.
+Получается дорого.
+
+#### Шаблон Double-Checked Locking
+```java
+// Неработающая версия
+class Foo {
+    private static Helper helper = null;
+    public static Helper getHelper() {
+        if (helper == null) {
+            synchronized (Foo.class) {
+                if (helper == null) {
+                    helper = new Helper();
+                }
+            }
+        }
+        return helper;
+    }
+// ........
+}
+```
+Почему не работает? Проблема в строке `helper = new Helper()`
+* Эта строка представляет из себя 3 действия: выделение памяти,
+выполнение кода конструктора, присвоение ссылки на память переменной.
+* Если нет гарантии на упорядоченность, то из другого потока можем
+видеть эти действия в каком угодно порядке.
+* Например, один поток создал `Helper`, второй увидел, что он уже не
+`null`, начал работать, а там ссылка есть, а данные кривые.
+> Как может быть так, что ссылка есть, а изменений полей нет?
+> Тот же пример с кэшом. Где-то в кеше записаны изменения полей,
+> и там же записано то, что `helper` теперь куда-то указывает. И 
+> информация про `helper` лежит ближе, кэш нам ее отдал. Но изменений
+> в оперативке все еще нет.
+
+```java
+// Не работает в Java 1.4 и более ранних версиях из-за семантики volatile
+class Foo {
+    private volatile Helper helper = null;
+    public Helper getHelper() {
+        if (helper == null) {
+            synchronized (Foo.class) {
+                if (helper == null) {
+                    helper = new Helper();
+                }
+            }
+        }
+        return helper;
+    }
+// ........
 }
 ```
 
+Но на самом деле, правильно писать так:
+```java
+public class Singleton {
+    private Sigleton();
+    private static class SingletonHolder() {
+        public final static Singleton instance = new Singleton();
+    }
+    
+    public static Singleton getInstance() {
+        return SingletonHolder.instance;
+    }
+}
+```
+* Статик гарантирует, что объект будет загружен только 1 раз при
+первом вызове.
+* Можно использовать `enum`, там тоже все будет хорошо 
+(!!!!! Написать пример, мб на летучке???)
 
-Правильный синглтон:
-* Статик гарантирует, что объект будет загружен только 1 раз при первом вызове.
+
+# Еще кусок про атомарность
+### Какие бывают атомарные операции?
+* Чтение (get)
+* Запись (set)
+* Чтение и запись (getAndSet)
+* Условная запись (compareAndSet)
+`compareAndSet(old, new)` - если текущее значение равно `old`, то
+установить значение в `new`.
+
+**Идиома (lockFreeOperations)**:
+```
+do {
+    old = v.get();
+    new = process(old);
+} while {
+    v.compareAndSet(old, new);
+}
+```
+Такую штуку еще называют CAS.
+
+**Зачем это все надо?**
+* Блокировка дорогая, с ней сложно жить. Хочется какие-то простые 
+критические блоки делать без нее.
+
+Почему не делаем так всегда?
+* Если `process` тяжелая операция, то постоянно в цикле будем повторять
+ее. 
+
+**Пример. Критическая секция на CAS.**
+```kotlin
+var v = 0;
+while (!v.compareAndSet(0,1)) {
+    // критическая секция
+    // освобождение
+    v.set(0);
+}
+```
+Минусы:
+* Цикл - активное ожидание. Стоит делать только для маленьких
+критических секций.
+
+### Как реализован `Lock`
+Почти везде в Java `Lock` реализован через CAS.
+Сначала пытаемся в течении небольшого времени через CAS сделать, потом
+берем блокировку.
+
+**Пример: неблокирующий счетчик**
+```java
+public final class Counter {
+    private long value = 0;
+
+    public synchronized long getValue() {
+        return value;
+    }
+
+    public synchronized long increment() {
+        return ++value;
+    }
+}
+```
+```java
+public class NonblockingCounter {
+    private AtomicInteger value;
+
+    public int getValue() {
+        return value.get();
+    }
+
+    public int increment() {
+        int v;
+        do {
+            v = value.get();
+        } while 
+            (!value.compareAndSet(v, v + 1));
+        return v + 1;
+    }
+}
+```

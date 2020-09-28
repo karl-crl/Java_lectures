@@ -129,7 +129,8 @@ class NameRunnable implements Runnable {
  
 ## Свойства потока:
 * id - не связан с id в ОС.
-* name
+* name - если не задано, то генерируется JVM; несколько потоков могут
+иметь одно и то же имя.
 * priority - как часто будет потоку выдаваться время на поработать.
 * daemon - поток-демон.   
  **ВАЖНО** После старта свойства не меняются.
@@ -233,6 +234,9 @@ t.start() : New -> Runnable
 `InterruptedException`.
 
 * Выкидывается, когда кто-то пытается прервать поток, когда он спит.
+Т.е. если вызвать `myLittleThread.interrupt()`
+* Может генериться случайно (т.е. **всегда надо проверять, что поток
+действительно пытались прервать** через `isInterrupted()`)
 * Нет общей договоренности, можно ли игнорировать `InterruptedException`.
 
 Пример, когда исключение НЕ игнорируется:
@@ -287,7 +291,7 @@ public int getValue() {
 }
 ```
 
-**ВАЖНО**: При вызове `yeild`, `sinchonized`, `join` поток УДЕРЖИВАЕТ
+**ВАЖНО**: При вызове `yeild`, `synchonized`, `join` поток УДЕРЖИВАЕТ
 ВСЕ блокировки.
 
 Пример:
@@ -386,8 +390,6 @@ public Object get() {
 
 #### Мониторы и условия
 
-**????** Монитор VS мьютекс
-
 В классе `Object` есть 3 метода для общения между потоками:
 * `wait(time?)` - ожидание. При ожидании **БЛОКИРОВКА СНИМАЕТСЯ**.   
 > Поток в соcтоянии Running. Когда поток засыпает, он запоминает все блокировки,
@@ -413,7 +415,7 @@ Runnable).
 Другие версии методов:
 ```java
 public synchronized void set(Object data) throws InterruptedException {
-    if (this.data != null) {
+    while (this.data != null) {
         this.wait(); // Пассивное лжидание
     }
     this.data = data;
@@ -421,7 +423,7 @@ public synchronized void set(Object data) throws InterruptedException {
 }
 
 public synchronized Object get() throws InterruptedException {
-    if (data == null) {
+    while (data == null) {
         wait(); // пассивное ожидание
     }
     Object d = data;
@@ -467,14 +469,12 @@ public synchronized Object get() {
 какой-то ответ о выполнении или результат.
 
 Решение с помощью монитора:
-
-TODO: Проверить, что везде правильно стоят синхронайзы.
 #### Задание:
 ```java
 sync(task) {
     sync(queue) {
         queue.add(task);
-        queue.notify();
+        queue.notifyAll();
     }
     task.wait();
 }

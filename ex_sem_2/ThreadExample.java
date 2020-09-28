@@ -10,11 +10,11 @@ public class ThreadExample {
 
     }
 
-    private static void threadpoolExample() {
-        Executors.newFixedThreadPool() // конечное количество потоков
-        Executors.newCachedThreadPool() // использует несколько потоков, но пытается не создавать новые потоки, а
-        //переиспользовать уже существующие
-    }
+//    private static void threadpoolExample() {
+//        Executors.newFixedThreadPool(); // конечное количество потоков
+//        Executors.newCachedThreadPool(); // использует несколько потоков, но пытается не создавать новые потоки, а
+//        //переиспользовать уже существующие
+//    }
 
 
     // TODO: add example

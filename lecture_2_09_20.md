@@ -235,8 +235,6 @@ t.start() : New -> Runnable
 
 * Выкидывается, когда кто-то пытается прервать поток, когда он спит.
 Т.е. если вызвать `myLittleThread.interrupt()`
-* Может генериться случайно (т.е. **всегда надо проверять, что поток
-действительно пытались прервать** через `isInterrupted()`)
 * Нет общей договоренности, можно ли игнорировать `InterruptedException`.
 
 Пример, когда исключение НЕ игнорируется:
@@ -291,7 +289,7 @@ public int getValue() {
 }
 ```
 
-**ВАЖНО**: При вызове `yeild`, `synchonized`, `join` поток УДЕРЖИВАЕТ
+**ВАЖНО**: При вызове `yeild`, `sleep`, `join` поток УДЕРЖИВАЕТ
 ВСЕ блокировки.
 
 Пример:
@@ -471,7 +469,7 @@ public synchronized Object get() {
 Решение с помощью монитора:
 #### Задание:
 ```java
-sync(task) {
+syncronized(task) {
     sync(queue) {
         queue.add(task);
         queue.notifyAll();

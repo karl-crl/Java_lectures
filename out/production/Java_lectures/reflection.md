@@ -50,19 +50,59 @@ isInterface
 * `getSimpleName()` - простое имя (просто имя класса). Для анонимного класса
 вернет $.
 
+Пример:
+```java
+public abstract class B {
+    public class C extends B {}
+}
+
+public class Main {
+    public static void main(String[] args) {
+        B classB = new B() {
+            @Override
+            public int hashCode() {
+                return super.hashCode();
+            }
+
+            @Override
+            public boolean equals(Object obj) {
+                return super.equals(obj);
+            }
+
+            @Override
+            protected Object clone() throws CloneNotSupportedException {
+                return super.clone();
+            }
+
+            @Override
+            public String toString() {
+                return super.toString();
+            }
+        };
+
+        Class bcl = classB.getClass();
+        bcl.getName(); // "Main$1"
+        bcl.getSimpleName(); // ""
+        bcl.getCanonicalName(); // null
+    }
+}
+```
+
+
 Можно спросить структуру класса и модификаторы:
-* `getSuperClass()` - предок.
-* `getInterface()` - реализуемые итерфейсы.
-* `getModifiers()` - модификаторы.
+* `Class<? super T> getSuperClass()` - предок.   
+`Object.class.getSuperClass() == null`.
+* `Class<?>[] getInterfaces()` - реализуемые интерфейсы.
+* `int getModifiers()` - модификаторы.
 
 Можно получить место определения класса:
 
-| Тип класса   | Метод                    |
-|--------------|--------------------------|
-| Верхнего ур. | getPackage()             |
-| Вложенный    | getDeclaredClass()       |
-|    в констр. | getEnclosingContructor() |
-|    в метод   | getEnclosingMethod()     |
+| Тип класса   | Метод                                  |
+|--------------|----------------------------------------|
+| Верхнего ур. | Package getPackage()                   |
+| Вложенный    | Class<?> getDeclaredClass()            |
+|    в констр. | Constructor<?> getEnclosingContructor()|
+|    в метод   | Method getEnclosingMethod()            |
 
 Можно проверить приведение типов:
 * `isAssignableFrom(class)` - можно ли `class` привести к текущему.
@@ -81,9 +121,9 @@ isInterface
 **Интерфейс Member**
 
 Методы:
-* `getDeclaringClass()`
-* `getName()`
-* `getModifiers()`
+* `Class getDeclaringClass()`
+* `String getName()`
+* `int getModifiers()`
 
 **Модификаторы**
 
